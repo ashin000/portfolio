@@ -49,15 +49,6 @@ themeObserver.observe(body, { attributes: true, attributeFilter: ['data-theme'] 
 
 
 
-// =========================
-// EMAILJS CONTACT FORM
-// =========================
-
-// Initialize EmailJS (only if the library is loaded)
-if (typeof emailjs !== 'undefined') {
-    emailjs.init('zQxYkII2Rq4YuHBYB');  // Public Key
-}
-
 const contactForm = document.getElementById('contactForm');
 if (contactForm) {
     contactForm.addEventListener('submit', function(e) {
@@ -78,13 +69,24 @@ if (contactForm) {
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
         submitBtn.disabled = true;
 
-        // Send email
-        emailjs.send('service_3756enz', 'template_r2i5z6f', templateParams)
-            .then(function(response) {
-                console.log('Email sent successfully:', response);
+        const formMessage = document.getElementById('formMessage');
+
+        // Send email using EmailJS REST API directly (no SDK needed)
+        fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                service_id: 'service_3756enz',
+                template_id: 'template_r2i5z6f',
+                user_id: 'zQxYkII2Rq4YuHBYB',
+                template_params: templateParams
+            })
+        })
+        .then(function(response) {
+            if (response.ok) {
+                console.log('Email sent successfully!');
 
                 // Show success message
-                const formMessage = document.getElementById('formMessage');
                 formMessage.className = 'alert alert-success mt-3';
                 formMessage.innerHTML = '<i class="fas fa-check-circle"></i> Message sent successfully! I\'ll get back to you soon.';
                 formMessage.classList.remove('d-none');
@@ -96,20 +98,25 @@ if (contactForm) {
                 setTimeout(() => {
                     formMessage.classList.add('d-none');
                 }, 5000);
-            }, function(error) {
-                console.log('Email send failed:', error);
+            } else {
+                return response.text().then(function(errorText) {
+                    throw new Error(errorText || 'Failed to send email');
+                });
+            }
+        })
+        .catch(function(error) {
+            console.error('Email send failed:', error);
 
-                // Show error message
-                const formMessage = document.getElementById('formMessage');
-                formMessage.className = 'alert alert-danger mt-3';
-                formMessage.innerHTML = '<i class="fas fa-exclamation-circle"></i> Failed to send message. Please try again or contact me directly.';
-                formMessage.classList.remove('d-none');
-            })
-            .finally(() => {
-                // Reset button
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            });
+            // Show error message
+            formMessage.className = 'alert alert-danger mt-3';
+            formMessage.innerHTML = '<i class="fas fa-exclamation-circle"></i> Failed to send message. Error: ' + (error.message || 'Unknown error');
+            formMessage.classList.remove('d-none');
+        })
+        .finally(() => {
+            // Reset button
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
     });
 }
 
