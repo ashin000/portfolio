@@ -55,7 +55,7 @@ themeObserver.observe(body, { attributes: true, attributeFilter: ['data-theme'] 
 
 // Initialize EmailJS (only if the library is loaded)
 if (typeof emailjs !== 'undefined') {
-    emailjs.init('service_3756enz');  // Add your Service ID here
+    emailjs.init('zQxYkII2Rq4YuHBYB');  // Public Key
 }
 
 const contactForm = document.getElementById('contactForm');
