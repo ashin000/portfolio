@@ -83,8 +83,10 @@ if (contactForm) {
         const autoReplyParams = {
             to_email: senderEmail,
             name: senderName,
+            from_name: senderName,
             email: senderEmail,
             title: messageSubject,
+            subject: messageSubject,
             message: messageBody
         };
 
