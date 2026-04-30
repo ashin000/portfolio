@@ -49,18 +49,43 @@ themeObserver.observe(body, { attributes: true, attributeFilter: ['data-theme'] 
 
 
 
+// =========================
+// EMAILJS CONFIGURATION
+// =========================
+const EMAILJS_CONFIG = {
+    serviceId: 'service_3756enz',
+    notifyTemplateId: 'template_j8fax3l',             // Template that sends the contact message TO YOU
+    autoReplyTemplateId: 'template_r2i5z6f',           // Template that sends confirmation TO THE SENDER
+    userId: 'zQxYkII2Rq4YuHBYB'
+};
+
 const contactForm = document.getElementById('contactForm');
 if (contactForm) {
     contactForm.addEventListener('submit', function(e) {
         e.preventDefault();
 
         // Get form data
-        const templateParams = {
-            from_name: document.getElementById('name').value,
-            from_email: document.getElementById('email').value,
-            subject: document.getElementById('subject').value,
-            message: document.getElementById('message').value,
-            to_email: 'ashin637416@gmail.com'
+        const senderName = document.getElementById('name').value;
+        const senderEmail = document.getElementById('email').value;
+        const messageSubject = document.getElementById('subject').value;
+        const messageBody = document.getElementById('message').value;
+
+        // Parameters for the notification email (sent TO YOU)
+        const notifyParams = {
+            to_email: 'ashin637416@gmail.com',
+            name: senderName,
+            email: senderEmail,
+            title: messageSubject,
+            message: messageBody
+        };
+
+        // Parameters for the auto-reply email (sent TO THE SENDER)
+        const autoReplyParams = {
+            to_email: senderEmail,
+            name: senderName,
+            email: senderEmail,
+            title: messageSubject,
+            message: messageBody
         };
 
         // Show loading message
@@ -71,38 +96,47 @@ if (contactForm) {
 
         const formMessage = document.getElementById('formMessage');
 
-        // Send email using EmailJS REST API directly (no SDK needed)
-        fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                service_id: 'service_3756enz',
-                template_id: 'template_r2i5z6f',
-                user_id: 'zQxYkII2Rq4YuHBYB',
-                template_params: templateParams
-            })
-        })
-        .then(function(response) {
-            if (response.ok) {
-                console.log('Email sent successfully!');
+        // Helper function to send an email via EmailJS REST API
+        function sendEmail(templateId, templateParams) {
+            return fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    service_id: EMAILJS_CONFIG.serviceId,
+                    template_id: templateId,
+                    user_id: EMAILJS_CONFIG.userId,
+                    template_params: templateParams
+                })
+            }).then(function(response) {
+                if (!response.ok) {
+                    return response.text().then(function(errorText) {
+                        throw new Error(errorText || 'Failed to send email');
+                    });
+                }
+                return response;
+            });
+        }
 
-                // Show success message
-                formMessage.className = 'alert alert-success mt-3';
-                formMessage.innerHTML = '<i class="fas fa-check-circle"></i> Message sent successfully! I\'ll get back to you soon.';
-                formMessage.classList.remove('d-none');
+        // Send BOTH emails: notification to you + auto-reply to the sender
+        Promise.all([
+            sendEmail(EMAILJS_CONFIG.notifyTemplateId, notifyParams),
+            sendEmail(EMAILJS_CONFIG.autoReplyTemplateId, autoReplyParams)
+        ])
+        .then(function() {
+            console.log('Both emails sent successfully!');
 
-                // Reset form
-                contactForm.reset();
+            // Show success message
+            formMessage.className = 'alert alert-success mt-3';
+            formMessage.innerHTML = '<i class="fas fa-check-circle"></i> Message sent successfully! A confirmation has been sent to your email. I\'ll get back to you soon.';
+            formMessage.classList.remove('d-none');
 
-                // Hide message after 5 seconds
-                setTimeout(() => {
-                    formMessage.classList.add('d-none');
-                }, 5000);
-            } else {
-                return response.text().then(function(errorText) {
-                    throw new Error(errorText || 'Failed to send email');
-                });
-            }
+            // Reset form
+            contactForm.reset();
+
+            // Hide message after 5 seconds
+            setTimeout(() => {
+                formMessage.classList.add('d-none');
+            }, 5000);
         })
         .catch(function(error) {
             console.error('Email send failed:', error);
