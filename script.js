@@ -100,6 +100,7 @@ if (contactForm) {
 
         // Helper function to send an email via EmailJS REST API
         function sendEmail(templateId, templateParams) {
+            console.log('Sending email with template:', templateId, 'Params:', JSON.stringify(templateParams));
             return fetch('https://api.emailjs.com/api/v1.0/email/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -112,18 +113,20 @@ if (contactForm) {
             }).then(function(response) {
                 if (!response.ok) {
                     return response.text().then(function(errorText) {
-                        throw new Error(errorText || 'Failed to send email');
+                        throw new Error('Template ' + templateId + ': ' + (errorText || 'Failed to send'));
                     });
                 }
+                console.log('Template ' + templateId + ' sent successfully!');
                 return response;
             });
         }
 
-        // Send BOTH emails: notification to you + auto-reply to the sender
-        Promise.all([
-            sendEmail(EMAILJS_CONFIG.notifyTemplateId, notifyParams),
-            sendEmail(EMAILJS_CONFIG.autoReplyTemplateId, autoReplyParams)
-        ])
+        // Step 1: Send notification email TO YOU first
+        sendEmail(EMAILJS_CONFIG.notifyTemplateId, notifyParams)
+        .then(function() {
+            // Step 2: Then send auto-reply TO THE SENDER
+            return sendEmail(EMAILJS_CONFIG.autoReplyTemplateId, autoReplyParams);
+        })
         .then(function() {
             console.log('Both emails sent successfully!');
 
